@@ -79,7 +79,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="lawnchair" android:host="settings" android:pathPrefix="/" />
+                <data android:scheme="chairz" android:host="settings" android:pathPrefix="/" />
             </intent-filter>
         </activity>
 

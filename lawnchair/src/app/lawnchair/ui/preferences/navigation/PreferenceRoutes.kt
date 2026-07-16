@@ -5,7 +5,7 @@ import app.lawnchair.ui.preferences.destinations.SearchRoute
 import app.lawnchair.ui.preferences.destinations.ShapeRoute
 import kotlinx.serialization.Serializable
 
-private const val URI = "lawnchair://settings"
+private const val URI = "chairz://settings"
 
 /**
  * Represents a route in the Lawnchair preferences navigation graph.
@@ -65,6 +65,11 @@ data class Search(val selectedId: SearchRoute = SearchRoute.DOCK_SEARCH) :
     PreferenceRootRoute,
     PreferenceDeepLink {
     override val deepLink = "$URI/search"
+}
+
+@Serializable
+data object ShortcutTray : PreferenceRootRoute, PreferenceDeepLink {
+    override val deepLink = "$URI/shortcut-tray"
 }
 
 @Serializable

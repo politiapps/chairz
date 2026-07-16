@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright 2021, Lawnchair
+  ~ Copyright 2021, Chairz
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -73,7 +73,7 @@
     <string name="time_months_ago">%dmo</string>
     <string name="time_years_ago">%dy</string>
 
-    <string name="managed_by_lawnchair">Managed by Lawnchair</string>
+    <string name="managed_by_lawnchair">Managed by Chairz</string>
 
     <!-- When mentioning settings UI -->
     <string name="smartspace_preferences">Preferences</string>
@@ -83,7 +83,7 @@
 
     <!--
 
-    General "words" used throughout Lawnchair
+    General "words" used throughout Chairz
 
     -->
     <string name="others_category_label">Others</string>
@@ -143,7 +143,7 @@
     <string name="sort_active_items_action">Sort active items</string>
 
     <!-- A11y description -->
-    <string name="accessibility_service_description">To perform certain actions when you use a gesture, such as locking your phone, Lawnchair requires accessibility access.\n\nLawnchair doesn\'t watch your actions, though all accessibility services require this privilege. Lawnchair discards any event sent by the system.\n\nTo lock your phone or open the Recents screen, Lawnchair uses the performGlobalAction accessibility service.</string>
+    <string name="accessibility_service_description">To perform certain actions when you use a gesture, such as locking your phone, Chairz requires accessibility access.\n\nChairz doesn\'t watch your actions, though all accessibility services require this privilege. Chairz discards any event sent by the system.\n\nTo lock your phone or open the Recents screen, Chairz uses the performGlobalAction accessibility service.</string>
 
     <string name="iconPackPackageDefault" translatable="false">""</string>
 
@@ -199,7 +199,7 @@
     <string name="about_label">About</string>
 
     <string name="app_info_drop_target_label">App info</string>
-    <string name="debug_restart_launcher">Restart Lawnchair</string>
+    <string name="debug_restart_launcher">Restart Chairz</string>
     <string name="experimental_features_label">Experimental features</string>
 
     <!-- Experimental features -->
@@ -254,7 +254,7 @@
 
     -->
 
-    <string name="set_default_launcher_tip">To access shortcuts and additional features, set Lawnchair as your default launcher</string>
+    <string name="set_default_launcher_tip">To access shortcuts and additional features, set Chairz as your default launcher</string>
 
     <string name="notification_dots">Notification dots</string>
     <string name="show_notification_count">Show notification counter</string>
@@ -486,13 +486,13 @@
     <string name="torch_action_off">Tap to turn off</string>
 
     <!-- Onboarding strings -->
-    <string name="onboarding_open_settings_title">Set up Lawnchair</string>
+    <string name="onboarding_open_settings_title">Set up Chairz</string>
     <string name="onboarding_open_settings_subtitle">Long-press on the home screen to open settings</string>
 
-    <string name="onboarding_major_upgrade_title">Meet the new Lawnchair</string>
+    <string name="onboarding_major_upgrade_title">Meet the new Chairz</string>
     <string name="onboarding_major_upgrade_subtitle">See what\'s new</string>
 
-    <string name="onboarding_welcome">Welcome to Lawnchair!</string>
+    <string name="onboarding_welcome">Welcome to Chairz!</string>
     <string name="onboarding_swipe_up">Swipe up to open the app drawer</string>
 
     <!-- Smartspacer strings -->
@@ -506,11 +506,11 @@
 
     <!-- Toggle button for enabling Smartspace -->
     <string name="smartspace_widget_toggle_label">Show on home screen</string>
-    <string name="smartspace_widget_toggle_description">At a Glance can be added to the home screen with the Lawnchair widget</string>
+    <string name="smartspace_widget_toggle_description">At a Glance can be added to the home screen with the Chairz widget</string>
 
     <!-- List of available providers -->
     <string name="smartspace_mode_label">At a Glance provider</string>
-    <string name="smartspace_mode_lawnchair" translatable="false">Lawnchair</string>
+    <string name="smartspace_mode_lawnchair" translatable="false">Chairz</string>
     <string name="smartspace_mode_google">Google</string>
     <string name="smartspace_mode_google_search">Google Search</string>
     <string name="smartspace_mode_smartspacer" translatable="false">Smartspacer</string>
@@ -614,13 +614,32 @@
     <string name="gesture_handler_open_app_config">Open %1$s</string>
     <string name="gesture_handler_open_app_drawer">Open app drawer</string>
     <string name="gesture_handler_open_app_search">Open app search</string>
+    <string name="gesture_handler_open_shortcut_tray">Open Shortcut Tray</string>
     <string name="gesture_handler_open_search">Open search</string>
     <string name="gesture_handler_open_assistant">Open assistant</string>
 
     <string name="pick_app_for_gesture">Pick app</string>
 
+    <!-- Shortcut Tray -->
+    <string name="shortcut_tray_label">Shortcut Tray</string>
+    <string name="shortcut_tray_description">Compact app search shown from the top of the home screen</string>
+    <string name="shortcut_tray_enable">Enable Shortcut Tray</string>
+    <string name="shortcut_tray_enable_description">Press Home while already on the home screen to open the tray</string>
+    <string name="shortcut_tray_hint">Search apps</string>
+    <string name="shortcut_tray_clear">Clear search</string>
+    <string name="shortcut_tray_play_store">Search Play Store</string>
+    <string name="shortcut_tray_tab_frequent">Frequent</string>
+    <string name="shortcut_tray_tab_recent">Recent</string>
+    <string name="shortcut_tray_tab_new_updated">New/Updated</string>
+    <string name="shortcut_tray_all_apps">All apps</string>
+    <string name="shortcut_tray_no_apps">No apps to show</string>
+    <string name="shortcut_tray_usage_access_title">Usage access needed</string>
+    <string name="shortcut_tray_usage_access_body">To show your most frequent and recent apps, Chairz needs usage access. Grant it in system settings.</string>
+    <string name="shortcut_tray_usage_access_action">Open settings</string>
+    <string name="shortcut_tray_usage_access_granted">Usage access granted</string>
+
     <string name="dt2s_admin_hint_title">Admin permissions required</string>
-    <string name="dt2s_admin_hint">To put the device to sleep, set Lawnchair as a device admin app. Tap \"Open settings\", then tap \"Activate this device admin app.\"</string>
+    <string name="dt2s_admin_hint">To put the device to sleep, set Chairz as a device admin app. Tap \"Open settings\", then tap \"Activate this device admin app.\"</string>
     <string name="dt2s_admin_warning">Gestures to put the device to sleep will be turned off.</string>
 
     <string name="d2ts_recents_a11y_hint_title">Turn on accessibility service</string>
@@ -630,8 +649,8 @@
     <string name="quick_settings_a11y_hint">open the Quick Settings panel</string>
     <string name="recents_screen_a11y_hint">open the Recents screen</string>
 
-    <string name="generic_a11y_hint">To %1$s, turn on the Lawnchair accessibility service. Tap \"Open settings\", choose \"Lawnchair\" and turn on \"Use Lawnchair.\"</string>
-    <string name="generic_a11y_disclaimer">Lawnchair uses Accessibility\'s `performGlobalAction` method to perform this action. This is a sensitive permission that allows monitoring other apps. However, Lawnchair is not configured for that functionality and receives no events.</string>
+    <string name="generic_a11y_hint">To %1$s, turn on the Chairz accessibility service. Tap \"Open settings\", choose \"Chairz\" and turn on \"Use Chairz.\"</string>
+    <string name="generic_a11y_disclaimer">Chairz uses Accessibility\'s `performGlobalAction` method to perform this action. This is a sensitive permission that allows monitoring other apps. However, Chairz is not configured for that functionality and receives no events.</string>
 
     <string name="sleep_mode_label">Sleep mode</string>
     <string name="sleep_mode_auto">Automatic</string>
@@ -644,7 +663,7 @@
     Bug reporting
 
     -->
-    <string name="lawnchair_bug_report">Lawnchair bug report</string>
+    <string name="lawnchair_bug_report">Chairz bug report</string>
     <string name="crash_report_notif_title">%1$s crashed</string>
     <string name="action_upload_crash_report">Upload crash log</string>
 
@@ -748,7 +767,7 @@
     <string name="search_bar_settings">Search bar settings</string>
     <string name="hotseat_mode_label">Search bar widget</string>
     <string name="hotseat_mode_disabled">Disabled</string>
-    <string name="hotseat_mode_lawnchair" translatable="false">Lawnchair</string>
+    <string name="hotseat_mode_lawnchair" translatable="false">Chairz</string>
     <string name="hotseat_mode_google_search">Google search bar</string>
 
     <string name="qsb_hotseat_background_transparency">Background opacity</string>
@@ -783,7 +802,7 @@
     <string name="unfolded_label">Unfolded</string>
     <string name="when_folded_label">When folded</string>
     <string name="when_unfolded_label">When unfolded</string>
-    <string name="unfolded_grid_description">Lawnchair pairs two pages together to fill the larger display</string>
+    <string name="unfolded_grid_description">Chairz pairs two pages together to fill the larger display</string>
     <string name="foldable_columns_error">The folded value must be less than or equal to the unfolded value. It will be automatically adjusted if needed.</string>
     <string name="hotseat_bottom_space_label">Bottom padding</string>
     <string name="page_indicator_height">Page indicator height</string>
@@ -815,7 +834,7 @@
     <string name="search_provider_vivaldi" translatable="false">Vivaldi</string>
     <string name="search_provider_custom">Custom</string>
 
-    <string name="search_provider_sponsored_description">%1$s and Lawnchair have a revenue share agreement.\n\nSearching with %1$s helps support Lawnchair.</string>
+    <string name="search_provider_sponsored_description">%1$s and Chairz have a revenue share agreement.\n\nSearching with %1$s helps support Chairz.</string>
 
     <string name="app_label">App</string>
     <string name="website_label">Website</string>
@@ -864,7 +883,7 @@
     <string name="max_folder_rows">Maximum folder rows</string>
 
     <!-- Quickstep settings -->
-    <string name="quickswitch_ignored_warning">These settings will be ignored because Lawnchair isn\'t set as the Recents screen provider</string>
+    <string name="quickswitch_ignored_warning">These settings will be ignored because Chairz isn\'t set as the Recents screen provider</string>
 
     <string name="quickstep_incompatible">Incompatible system integration</string>
     <string name="quickstep_incompatible_description">Your device is configured to have system gestures, known as Quickstep, provided by %1$s, but this version of %1$s isn\'t compatible with your Android version. To continue using your device, uninstall %1$s updates or disable %1$s as a system gesture provider.</string>

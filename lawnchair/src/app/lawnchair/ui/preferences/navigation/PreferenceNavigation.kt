@@ -52,6 +52,7 @@ import app.lawnchair.ui.preferences.destinations.SearchProviderPreferences
 import app.lawnchair.ui.preferences.destinations.SelectAppsForDrawerFolder
 import app.lawnchair.ui.preferences.destinations.SelectIconPreference
 import app.lawnchair.ui.preferences.destinations.ShapePreference
+import app.lawnchair.ui.preferences.destinations.ShortcutTrayPreferences
 import app.lawnchair.ui.preferences.destinations.SmartspacePreferences
 import com.android.launcher3.util.ComponentKey
 import soup.compose.material.motion.animation.materialSharedAxisXIn
@@ -177,6 +178,10 @@ fun PreferenceNavigation(
             val route: SearchProviderPreference = backStackEntry.toRoute()
             SearchProviderPreferenceScreen(route.id)
         }
+
+        composable<ShortcutTray>(
+            deepLinks = getDeepLink(ShortcutTray),
+        ) { ShortcutTrayPreferences() }
 
         composable<Folders>(
             deepLinks = getDeepLink(Folders),

@@ -775,6 +775,15 @@ class PreferenceManager2 @Inject constructor(
         onSet = { reloadHelper.recreate() },
     )
 
+    /**
+     * When enabled, pressing Home while already on the home screen opens the Shortcut Tray instead
+     * of running the home-press gesture handler.
+     */
+    val shortcutTrayEnabled = preference(
+        key = booleanPreferencesKey(name = "shortcut_tray_enabled"),
+        defaultValue = false,
+    )
+
     val deckLayout = preference(
         key = booleanPreferencesKey(name = "enable_lawn_deck"),
         defaultValue = false,

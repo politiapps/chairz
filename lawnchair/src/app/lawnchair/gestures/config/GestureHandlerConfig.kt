@@ -17,6 +17,7 @@ import app.lawnchair.gestures.handlers.OpenAssistantHandler
 import app.lawnchair.gestures.handlers.OpenNotificationsHandler
 import app.lawnchair.gestures.handlers.OpenQuickSettingsHandler
 import app.lawnchair.gestures.handlers.OpenSearchGestureHandler
+import app.lawnchair.gestures.handlers.OpenShortcutTrayGestureHandler
 import app.lawnchair.gestures.handlers.RecentsGestureHandler
 import app.lawnchair.gestures.handlers.SleepGestureHandler
 import app.lawnchair.theme.color.tokens.ColorTokens
@@ -110,6 +111,15 @@ sealed class GestureHandlerConfig {
     @SerialName("openAppSearch")
     data object OpenAppSearch :
         Simple(R.string.gesture_handler_open_app_search, ::OpenAppSearchGestureHandler) {
+        override val iconRes = R.drawable.ic_search
+
+        override fun isExternallyInvokable() = true
+    }
+
+    @Serializable
+    @SerialName("openShortcutTray")
+    data object OpenShortcutTray :
+        Simple(R.string.gesture_handler_open_shortcut_tray, ::OpenShortcutTrayGestureHandler) {
         override val iconRes = R.drawable.ic_search
 
         override fun isExternallyInvokable() = true

@@ -32,8 +32,8 @@ allprojects {
                 vectorDrawables.useSupportLibrary = true
             }
             lint {
-                abortOnError true
-                checkReleaseBuilds false
+                abortOnError = true
+                checkReleaseBuilds = false
             }
             compileOptions {
                 sourceCompatibility = libs.versions.jdkRelease.get()
@@ -146,10 +146,10 @@ final def quickstepMinSdk = "29"
 final def quickstepMaxSdk = "36"
 
 android {
-    namespace "com.android.launcher3"
+    namespace = "com.android.launcher3"
     defaultConfig {
         /*
-         * Lawnchair Launcher 16.0 Development 5.1
+         * Chairz 16.0 Development 5.1
          * see CONTRIBUTING.md#versioning-scheme
          */
         versionCode 16_00_01_05_01
@@ -166,13 +166,13 @@ android {
     }
 
     androidResources {
-        generateLocaleConfig true
+        generateLocaleConfig = true
     }
 
     buildFeatures {
-        aidl true
-        buildConfig true
-        resValues true
+        aidl = true
+        buildConfig = true
+        resValues = true
     }
 
     packagingOptions.resources.excludes += [
@@ -219,13 +219,13 @@ android {
 
     buildTypes {
         all {
-            signingConfig releaseSigning
-            pseudoLocalesEnabled true
+            signingConfig = releaseSigning
+            pseudoLocalesEnabled = true
         }
 
         debug {
             applicationIdSuffix ".debug"
-            resValue("string", "derived_app_name", "Lawnchair (Debug)")
+            resValue("string", "derived_app_name", "Chairz (Debug)")
 
             manifestPlaceholders.quickstepMinSdk = "0"
             manifestPlaceholders.quickstepMaxSdk = "100000"
@@ -234,16 +234,16 @@ android {
         }
 
         release {
-            resValue("string", "derived_app_name", "Lawnchair")
-            minifyEnabled true
-            shrinkResources true
-            pseudoLocalesEnabled false
+            resValue("string", "derived_app_name", "Chairz")
+            minifyEnabled = true
+            shrinkResources = true
+            pseudoLocalesEnabled = false
             proguardFiles proguardFilesFromAosp + "proguard.pro"
         }
     }
 
     compileOptions {
-        coreLibraryDesugaringEnabled true
+        coreLibraryDesugaringEnabled = true
     }
 
     dependenciesInfo {
@@ -265,19 +265,19 @@ android {
         }
 
         github {
-            applicationId 'app.lawnchair'
+            applicationId = "app.chairz"
             dimension "channel"
         }
 
         nightly {
-            applicationId 'app.lawnchair.nightly'
+            applicationId = "app.chairz.nightly"
             dimension "channel"
         }
 
         play {
-            applicationId "app.lawnchair.play"
+            applicationId = "app.chairz.play"
             dimension "channel"
-            isDefault true
+            isDefault = true
         }
 
         configureEach {
@@ -347,7 +347,7 @@ androidComponents {
     onVariants(selector().all()) { variant ->
         def channel = variant.productFlavors.last().second
         variant.outputs.forEach { output ->
-            output.outputFileName.set("Lawnchair.${output.versionName.get()}.$channel.${variant.buildType}.apk")
+            output.outputFileName.set("Chairz.${output.versionName.get()}.$channel.${variant.buildType}.apk")
         }
     }
 }

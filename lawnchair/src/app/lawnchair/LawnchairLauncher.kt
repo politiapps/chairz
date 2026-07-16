@@ -45,6 +45,7 @@ import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
 import app.lawnchair.root.RootHelperManager
 import app.lawnchair.root.RootNotAvailableException
+import app.lawnchair.shortcuttray.ShortcutTrayView
 import app.lawnchair.theme.ThemeProvider
 import app.lawnchair.ui.popup.LauncherOptionsPopup
 import app.lawnchair.ui.popup.LawnchairShortcut
@@ -286,6 +287,13 @@ class LawnchairLauncher : QuickstepLauncher() {
     }
 
     override fun handleHomeTap() {
+        // Nova-style: pressing Home while already on the home screen reveals the Shortcut Tray.
+        // Launcher only calls this when no floating view is open, so an open tray is closed by the
+        // usual closeAllOpenViews path instead of being reopened here.
+        if (preferenceManager2.shortcutTrayEnabled.firstCached()) {
+            ShortcutTrayView.show(this)
+            return
+        }
         gestureController.onHomePressed()
     }
 

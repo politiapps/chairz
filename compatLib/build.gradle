@@ -5,10 +5,10 @@ plugins {
 
 android {
     buildToolsVersion "37.0.0"
-    namespace "app.lawnchair.compatlib"
+    namespace = "app.lawnchair.compatlib"
 
     buildFeatures {
-        aidl true
+        aidl = true
     }
 
     sourceSets {

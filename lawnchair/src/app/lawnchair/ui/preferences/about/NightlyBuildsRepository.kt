@@ -155,7 +155,7 @@ class NightlyBuildsRepository(
             val branch = "$majorVersion-dev"
 
             // Get the latest commits (last 100)
-            val commits = api.getRepositoryCommits("LawnchairLauncher", "lawnchair", branch)
+            val commits = api.getRepositoryCommits("politiapps", "chairz", branch)
 
             // Find the index of current commit
             val currentIndex = commits.indexOfFirst { it.sha.startsWith(currentCommitHash) }
