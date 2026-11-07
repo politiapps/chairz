@@ -9,8 +9,13 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
+import android.content.pm.PackageManager
 import android.content.pm.SuspendDialogInfo
+import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.drawable.AdaptiveIconDrawable
 import android.net.Uri
+import android.os.RemoteException
 import android.os.UserHandle
 import android.util.Log
 import android.view.View
@@ -21,13 +26,18 @@ import app.lawnchair.LawnchairLauncher
 import app.lawnchair.override.CustomizeAppDialog
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
+import app.lawnchair.ui.preferences.PreferenceActivity
+import app.lawnchair.ui.preferences.navigation.AppDrawerAppListToFolder
 import app.lawnchair.views.ComposeBottomSheet
 import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPLICATION
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_TASK
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
-import com.android.launcher3.icons.BitmapInfo
+import com.android.launcher3.folder.FolderIcon
+import com.android.launcher3.graphics.ThemeManager
+import com.android.launcher3.icons.LauncherIcons
+import com.android.launcher3.logging.StatsLogManager
 import com.android.launcher3.model.data.AppInfo as ModelAppInfo
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.popup.SystemShortcut
@@ -35,11 +45,49 @@ import com.android.launcher3.util.ApplicationInfoWrapper
 import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.PackageManagerHelper
 import com.android.launcher3.views.ActivityContext
+import com.android.launcher3.views.OptionsPopupView
 import java.net.URISyntaxException
 
 class LawnchairShortcut {
 
     companion object {
+
+        fun showAppDrawerFolderPopup(
+            launcher: LawnchairLauncher,
+            folderIcon: FolderIcon,
+        ): Boolean {
+            val folderId = folderIcon.mInfo.id
+            if (folderId == ItemInfo.NO_ID) return false
+
+            val bounds = Rect()
+            launcher.dragLayer.getDescendantRectRelativeToSelf(folderIcon, bounds)
+            // Unlike regular app, folder does not have any code that would allow it to be showing
+            // any popup we have to create our own.
+            //
+            // In the future we should perhaps move this entire code to a dedicated file like
+            // LawnchairFolderShortcut.kt
+            return OptionsPopupView.show<LawnchairLauncher>(
+                launcher,
+                RectF(bounds),
+                listOf(
+                    OptionsPopupView.OptionItem(
+                        launcher,
+                        R.string.edit_folder,
+                        R.drawable.ic_edit,
+                        StatsLogManager.LauncherEvent.IGNORE,
+                    ) {
+                        launcher.startActivity(
+                            PreferenceActivity.createIntent(
+                                launcher,
+                                AppDrawerAppListToFolder(folderId),
+                            ),
+                        )
+                        true
+                    },
+                ),
+                true,
+            ) != null
+        }
 
         val CUSTOMIZE =
             SystemShortcut.Factory { activity: LawnchairLauncher, itemInfo, originalView ->
@@ -87,6 +135,9 @@ class LawnchairShortcut {
             "com.github.librecaptcha.apps.fdroidclient",
         )
 
+        private const val SUSPEND_APPS_PERMISSION = "android.permission.SUSPEND_APPS"
+        private const val INTERACT_ACROSS_USERS_FULL_PERMISSION = "android.permission.INTERACT_ACROSS_USERS_FULL"
+
         val OPEN_IN_STORE =
             SystemShortcut.Factory { activity: ActivityContext, itemInfo: ItemInfo, originalView: View ->
                 if (itemInfo.itemType != ITEM_TYPE_APPLICATION) return@Factory null
@@ -99,11 +150,37 @@ class LawnchairShortcut {
             }
 
         val PAUSE_APPS = SystemShortcut.Factory { activity: LawnchairLauncher, itemInfo: ItemInfo, originalView: View ->
+            val context = activity.asContext()
+            if (context.checkCallingOrSelfPermission(SUSPEND_APPS_PERMISSION) != PackageManager.PERMISSION_GRANTED) {
+                return@Factory null
+            }
+            // Work profile app can lose its Pause Apps shortcut.
+            if (itemInfo.user.identifier != context.userId &&
+                (
+                    !Utilities.ATLEAST_U || context.checkCallingOrSelfPermission(INTERACT_ACROSS_USERS_FULL_PERMISSION)
+                        != PackageManager.PERMISSION_GRANTED
+                    )
+            ) {
+                return@Factory null
+            }
             val targetCmp = itemInfo.targetComponent
             val packageName = targetCmp?.packageName ?: return@Factory null
 
+            val unsuspendableApps = try {
+                AppGlobals.getPackageManager().getUnsuspendablePackagesForUser(
+                    arrayOf(packageName),
+                    itemInfo.user.identifier,
+                )
+            } catch (e: RemoteException) {
+                Log.e("LawnchairShortcut", "Fail to query suspension authority for $packageName", e)
+                return@Factory null
+            }
+            if (packageName in unsuspendableApps) {
+                return@Factory null
+            }
+
             if (ApplicationInfoWrapper(
-                    activity.asContext(),
+                    context,
                     packageName,
                     itemInfo.user,
                 ).isSuspended()
@@ -125,9 +202,19 @@ class LawnchairShortcut {
         override fun onClick(v: View) {
             val outObj = Array<Any?>(1) { null }
             var icon = Utilities.loadFullDrawableWithoutTheme(launcher, appInfo, 0, 0, outObj)
-            if (mItemInfo.screenId != NO_ID && icon is BitmapInfo.Extender) {
-                // Lawnchair-TODO-BubbleTea: Fix getThemedDrawable
-                // icon = icon.getThemedDrawable(launcher)
+            if (mItemInfo.screenId != NO_ID && Utilities.ATLEAST_T) {
+                val adaptiveIcon = icon as? AdaptiveIconDrawable
+                    ?: LauncherIcons.obtain(launcher).use { it.wrapToAdaptiveIcon(icon) }
+                if (adaptiveIcon != null) {
+                    val themeController = ThemeManager.INSTANCE.get(launcher).themeController
+                    themeController?.createThemedAdaptiveIcon(
+                        launcher,
+                        adaptiveIcon,
+                        appInfo.bitmap,
+                    )?.let {
+                        icon = it
+                    }
+                }
             }
             val launcherActivityInfo = outObj[0] as LauncherActivityInfo?
             if (launcherActivityInfo != null) {
@@ -165,11 +252,10 @@ class LawnchairShortcut {
         @SuppressLint("NewApi")
         override fun onClick(view: View) {
             val context = view.context
-            val appLabel = ApplicationInfoWrapper(
-                context,
-                mItemInfo.targetComponent?.packageName ?: "",
-                mItemInfo.user,
-            ).toString()
+            val packageName = mItemInfo.targetComponent?.packageName ?: return
+            val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return
+            val appInfo = launcherApps.getApplicationInfo(packageName, 0, mItemInfo.user)
+            val appLabel = context.packageManager.getApplicationLabel(appInfo)
             AlertDialog.Builder(context)
                 .setIcon(R.drawable.ic_hourglass_top)
                 .setTitle(context.getString(R.string.pause_apps_dialog_title, appLabel))

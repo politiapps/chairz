@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -25,15 +24,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.lawnchair.ui.preferences.components.controls.getSteps
 import app.lawnchair.ui.preferences.components.controls.snapSliderValue
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import com.android.launcher3.R
+import com.android.launcher3.util.MSDLPlayerWrapper
+import com.google.android.msdl.data.model.MSDLToken
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RgbColorSlider(
     label: String,
@@ -43,6 +44,7 @@ fun RgbColorSlider(
     modifier: Modifier = Modifier,
     onValueChange: (Float) -> Unit,
 ) {
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
     val step = 0f
     val rgbRange = 0f..255f
 
@@ -79,7 +81,10 @@ fun RgbColorSlider(
                 )
                 Slider(
                     value = value.toFloat(),
-                    onValueChange = onValueChange,
+                    onValueChange = {
+                        mMSDLPlayerWrapper.playToken(MSDLToken.DRAG_INDICATOR_CONTINUOUS)
+                        onValueChange(it)
+                    },
                     valueRange = rgbRange,
                     steps = getSteps(rgbRange, step),
                     modifier = Modifier
@@ -98,7 +103,6 @@ fun RgbColorSlider(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HsbColorSlider(
     type: HsbSliderType,
@@ -106,6 +110,7 @@ fun HsbColorSlider(
     modifier: Modifier = Modifier,
     onValueChange: (Float) -> Unit,
 ) {
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
     val step = 0f
 
     val range = when (type) {
@@ -176,7 +181,10 @@ fun HsbColorSlider(
                 }
                 Slider(
                     value = value,
-                    onValueChange = onValueChange,
+                    onValueChange = {
+                        mMSDLPlayerWrapper.playToken(MSDLToken.DRAG_INDICATOR_CONTINUOUS)
+                        onValueChange(it)
+                    },
                     onValueChangeFinished = { },
                     valueRange = range,
                     steps = getSteps(range, step),

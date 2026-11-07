@@ -37,7 +37,6 @@ import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.TipsAndUpdates
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -92,6 +91,8 @@ import app.lawnchair.util.isDefaultLauncher
 import app.lawnchair.util.restartLauncher
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
+import com.android.launcher3.util.MSDLPlayerWrapper
+import com.google.android.msdl.data.model.MSDLToken
 
 @Composable
 fun PreferencesDashboard(
@@ -239,7 +240,6 @@ fun PreferencesDashboard(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RowScope.PreferencesOverflowMenu(
     currentRoute: PreferenceRootRoute,
@@ -331,7 +331,6 @@ fun RowScope.PreferencesOverflowMenu(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PreferencesDebugWarning(
     modifier: Modifier = Modifier,
@@ -347,12 +346,12 @@ fun PreferencesDebugWarning(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PreferencesSetDefaultLauncherWarning(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
     Surface(
         modifier = modifier.padding(horizontal = 16.dp),
         shape = MaterialTheme.shapes.large,
@@ -361,6 +360,7 @@ fun PreferencesSetDefaultLauncherWarning(
         PreferenceTemplate(
             modifier = Modifier,
             onClick = {
+                mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
                 Intent(Settings.ACTION_HOME_SETTINGS)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     .let { context.startActivity(it) }

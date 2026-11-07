@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Launch
 import androidx.compose.material.icons.rounded.NewReleases
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
@@ -56,6 +55,8 @@ import app.lawnchair.ui.preferences.data.liveinfo.liveInformationManager
 import app.lawnchair.ui.preferences.data.liveinfo.model.Announcement
 import app.lawnchair.ui.util.addIf
 import com.android.launcher3.R
+import com.android.launcher3.util.MSDLPlayerWrapper
+import com.google.android.msdl.data.model.MSDLToken
 import kotlinx.coroutines.launch
 
 @Composable
@@ -68,7 +69,9 @@ fun AnnouncementPreference() {
     val dismissedAnnouncementIds by liveInformationManager.dismissedAnnouncementIds.asState()
     val liveInformation by liveInformationManager.liveInformation.asState()
 
-    val announcements = remember { liveInformation.announcements.filter { it.id !in dismissedAnnouncementIds } }
+    val announcements = remember(liveInformation, dismissedAnnouncementIds) {
+        liveInformation.announcements.filter { it.id !in dismissedAnnouncementIds }
+    }
 
     if (enabled && showAnnouncements) {
         AnnouncementPreference(
@@ -132,7 +135,6 @@ private fun AnnouncementItem(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AnnouncementItemContent(
     text: String,
@@ -211,7 +213,6 @@ fun calculateAlpha(progress: Float): Float {
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AnnouncementPreferenceItemContent(
     text: String,
@@ -221,11 +222,13 @@ private fun AnnouncementPreferenceItemContent(
 ) {
     val context = LocalContext.current
     val hasLink = !url.isNullOrBlank()
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
 
     PreferenceTemplate(
         modifier = modifier.fillMaxWidth(),
         onClick = {
             if (hasLink) {
+                mMSDLPlayerWrapper.playToken(MSDLToken.TAP_LOW_EMPHASIS)
                 val webpage = url.toUri()
                 val intent = Intent(Intent.ACTION_VIEW, webpage)
                 if (intent.resolveActivity(context.packageManager) != null) {

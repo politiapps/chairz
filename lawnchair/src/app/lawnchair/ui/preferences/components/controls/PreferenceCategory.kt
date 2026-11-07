@@ -20,7 +20,6 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,14 +28,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.ui.util.preview.PreviewLawnchair
 import com.android.launcher3.R
+import com.android.launcher3.util.MSDLPlayerWrapper
+import com.google.android.msdl.data.model.MSDLToken
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PreferenceCategory(
     label: String,
@@ -46,6 +47,7 @@ fun PreferenceCategory(
     isSelected: Boolean = false,
     description: String? = null,
 ) {
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
     PreferenceTemplate(
         title = {
             Text(
@@ -71,7 +73,10 @@ fun PreferenceCategory(
                 )
             }
         },
-        onClick = onNavigate,
+        onClick = {
+            mMSDLPlayerWrapper.playToken(MSDLToken.TAP_LOW_EMPHASIS)
+            onNavigate()
+        },
     )
 }
 

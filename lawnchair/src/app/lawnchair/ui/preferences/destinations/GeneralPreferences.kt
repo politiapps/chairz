@@ -40,7 +40,6 @@ import app.lawnchair.ui.preferences.components.colorpreference.ColorContrastWarn
 import app.lawnchair.ui.preferences.components.colorpreference.ColorPreference
 import app.lawnchair.ui.preferences.components.controls.ListPreference
 import app.lawnchair.ui.preferences.components.controls.ListPreferenceEntry
-import app.lawnchair.ui.preferences.components.controls.SliderPreference
 import app.lawnchair.ui.preferences.components.controls.SwitchPreference
 import app.lawnchair.ui.preferences.components.controls.WarningPreference
 import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
@@ -48,8 +47,12 @@ import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.preferences.components.notificationDotsEnabled
 import app.lawnchair.ui.preferences.components.notificationServiceEnabled
+import app.lawnchair.ui.preferences.data.liveinfo.liveInformationManager
+import app.lawnchair.ui.preferences.destinations.icons.ThemedIconsState
+import app.lawnchair.ui.preferences.navigation.GeneralAdvancedIcons
 import app.lawnchair.ui.preferences.navigation.GeneralIconPack
 import app.lawnchair.ui.preferences.navigation.GeneralIconShape
+import app.lawnchair.ui.preferences.navigation.GeneralThemedIcons
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
@@ -59,6 +62,7 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val prefs = preferenceManager()
     val prefs2 = preferenceManager2()
+    val liveInfoManager = liveInformationManager()
     val iconPacks by LocalPreferenceInteractor.current.iconPacks.collectAsStateWithLifecycle()
     val themedIconsAdapter = prefs.themedIcons.getAdapter()
     val drawerThemedIconsAdapter = prefs.drawerThemedIcons.getAdapter()
@@ -67,19 +71,11 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
     val currentIconPackName = iconPacks
         .find { it.packageName == preferenceManager().iconPackPackage.get() }
         ?.name
-    val themedIconsEnabled = ThemedIconsState.getForSettings(
+    val themedIconsState = ThemedIconsState.getForSettings(
         themedIcons = themedIconsAdapter.state.value,
         drawerThemedIcons = drawerThemedIconsAdapter.state.value,
-    ) != ThemedIconsState.Off
-    val iconStyleSubtitle = if (currentIconPackName != null && themedIconsEnabled) {
-        stringResource(
-            id = R.string.x_and_y,
-            currentIconPackName,
-            stringResource(id = R.string.themed_icon_title),
-        )
-    } else {
-        currentIconPackName
-    }
+    )
+    val themedIconsSubtitle = stringResource(id = themedIconsState.labelResourceId)
     val iconShapeSubtitle = iconShapeEntries(context)
         .firstOrNull { it.value == iconShapeAdapter.state.value }
         ?.label?.invoke()
@@ -97,14 +93,19 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
                 description = stringResource(id = R.string.home_screen_rotation_description),
             )
         }
-        if (BuildConfig.APPLICATION_ID.contains("nightly")) {
-            PreferenceGroup(heading = stringResource(id = R.string.updater)) {
+        PreferenceGroup(heading = stringResource(id = R.string.updater)) {
+            if (BuildConfig.APPLICATION_ID.contains("nightly")) {
                 SwitchPreference(
                     adapter = prefs2.autoUpdaterNightly.getAdapter(),
                     label = stringResource(id = R.string.auto_updater_label),
                     description = stringResource(id = R.string.auto_updater_description),
                 )
             }
+            SwitchPreference(
+                adapter = liveInfoManager.enabled.getAdapter(),
+                label = stringResource(id = R.string.live_information_label),
+                description = stringResource(id = R.string.live_information_description),
+            )
         }
         ExpandAndShrink(visible = prefs2.enableFontSelection.asState().value) {
             PreferenceGroup(heading = stringResource(id = R.string.font_label)) {
@@ -130,27 +131,21 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
                 )
             }
         }
-        val wrapAdaptiveIcons = prefs.wrapAdaptiveIcons.getAdapter()
-        val transparentIconBackground = prefs.transparentIconBackground.getAdapter()
 
         PreferenceGroup(
             modifier = Modifier,
             heading = stringResource(id = R.string.icons),
-            description = stringResource(id = (R.string.adaptive_icon_background_description)),
-            showDescription = wrapAdaptiveIcons.state.value,
         ) {
             NavigationActionPreference(
-                label = stringResource(id = R.string.icon_style_label),
+                label = stringResource(id = R.string.icon_pack),
                 destination = GeneralIconPack,
-                subtitle = iconStyleSubtitle,
+                subtitle = currentIconPackName,
             )
-            ExpandAndShrink(visible = themedIconsEnabled) {
-                SwitchPreference(
-                    adapter = transparentIconBackground,
-                    label = stringResource(id = R.string.transparent_background_icons_label),
-                    description = stringResource(id = R.string.transparent_background_icons_description),
-                )
-            }
+            NavigationActionPreference(
+                label = stringResource(id = R.string.themed_icon_title),
+                destination = GeneralThemedIcons,
+                subtitle = themedIconsSubtitle,
+            )
             NavigationActionPreference(
                 label = stringResource(id = R.string.icon_shape_label),
                 destination = GeneralIconShape(ShapeRoute.APP_SHAPE),
@@ -159,24 +154,10 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
                     IconShapePreview(iconShape = iconShapeAdapter.state.value)
                 },
             )
-            SwitchPreference(
-                adapter = wrapAdaptiveIcons,
-                label = stringResource(id = R.string.auto_adaptive_icons_label),
-                description = stringResource(id = R.string.auto_adaptive_icons_description),
+            NavigationActionPreference(
+                label = stringResource(id = R.string.advanced_icon_settings_title),
+                destination = GeneralAdvancedIcons,
             )
-            SwitchPreference(
-                adapter = prefs.shadowBGIcons.getAdapter(),
-                label = stringResource(id = R.string.shadow_bg_icons_label),
-            )
-            ExpandAndShrink(visible = wrapAdaptiveIcons.state.value && !transparentIconBackground.state.value) {
-                SliderPreference(
-                    label = stringResource(id = R.string.background_lightness_label),
-                    adapter = prefs.coloredBackgroundLightness.getAdapter(),
-                    valueRange = 0F..1F,
-                    step = 0.1f,
-                    showAsPercentage = true,
-                )
-            }
         }
 
         val accentColorAdapter = prefs2.accentColor.getAdapter()

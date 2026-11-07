@@ -26,13 +26,18 @@ import app.lawnchair.util.requireSystemService
 import com.android.launcher3.LauncherAppState
 import com.android.launcher3.R
 import com.android.launcher3.util.ComponentKey
+import com.android.launcher3.util.MSDLPlayerWrapper
+import com.google.android.msdl.data.model.MSDLToken
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val TAG = "SelectIconPreference"
 
 @Composable
 fun SelectIconPreference(componentKey: ComponentKey) {
     val context = LocalContext.current
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
     val label = remember(componentKey) {
         resolveAppLabel(context.requireSystemService(), componentKey)
     }
@@ -46,11 +51,15 @@ fun SelectIconPreference(componentKey: ComponentKey) {
     OnResult<IconPickerItem> { item ->
         scope.launch {
             repo.setOverride(componentKey, item)
+            // Refresh package icons while the model is still loaded; forceReload alone can
+            // skip PackageUpdatedTask and leave icon-cache entries that look "fresh".
+            // onAppIconChanged is @WorkerThread (blocking ShortcutManager query).
+            withContext(Dispatchers.IO) {
+                model.onAppIconChanged(componentKey.componentName.packageName, componentKey.user)
+            }
             (context as Activity).let {
                 it.setResult(Activity.RESULT_OK)
                 it.finish()
-                model.onAppIconChanged(componentKey.componentName.packageName, componentKey.user)
-                model.forceReload()
             }
         }
     }
@@ -66,11 +75,15 @@ fun SelectIconPreference(componentKey: ComponentKey) {
                     onClick = {
                         scope.launch {
                             repo.deleteOverride(componentKey)
+                            withContext(Dispatchers.IO) {
+                                model.onAppIconChanged(
+                                    componentKey.componentName.packageName,
+                                    componentKey.user,
+                                )
+                            }
                             (context as Activity).let {
                                 it.setResult(Activity.RESULT_OK)
                                 it.finish()
-                                model.onAppIconChanged(componentKey.componentName.packageName, componentKey.user)
-                                model.forceReload()
                             }
                         }
                     },
@@ -86,6 +99,7 @@ fun SelectIconPreference(componentKey: ComponentKey) {
                 label = iconPack.name,
                 icon = remember(iconPack) { iconPack.icon.toBitmap() },
                 onClick = {
+                    mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
                     if (iconPack.packageName.isEmpty()) {
                         navController.navigate(IconPicker())
                     } else {

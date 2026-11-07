@@ -22,7 +22,6 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -58,19 +57,21 @@ import app.lawnchair.ui.preferences.components.layout.PreferenceSearchScaffold
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import app.lawnchair.ui.preferences.components.layout.preferenceGroupItems
 import com.android.launcher3.R
+import com.android.launcher3.util.MSDLPlayerWrapper
+import com.google.android.msdl.data.model.MSDLToken
 
 private enum class ContentType {
     ADD_BUTTON,
     FONT,
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FontSelection(
     fontPref: BasePreferenceManager.FontPref,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
     val customFonts by remember { FontCache.INSTANCE.get(context).customFonts }.collectAsStateWithLifecycle(initialValue = emptyList())
     val items by produceState(initialValue = emptyList<FontCache.Family>()) {
         val list = mutableListOf<FontCache.Family>()
@@ -133,6 +134,7 @@ fun FontSelection(
             OverflowMenu {
                 DropdownMenuItem(
                     onClick = {
+                        mMSDLPlayerWrapper.playToken(MSDLToken.SUCCESS)
                         fontPref.set(fontPref.defaultValue)
                         hideMenu()
                     },
@@ -152,6 +154,7 @@ fun FontSelection(
                     ) {
                         PreferenceTemplate(
                             onClick = {
+                                mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
                                 val intent = Intent(Intent.ACTION_GET_CONTENT)
                                 intent.addCategory(Intent.CATEGORY_OPENABLE)
                                 intent.type = "*/*"
@@ -204,7 +207,6 @@ fun FontSelection(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun FontSelectionItem(
     adapter: PreferenceAdapter<FontCache.Font>,
@@ -212,10 +214,14 @@ private fun FontSelectionItem(
     modifier: Modifier = Modifier,
     onDelete: (() -> Unit)? = null,
 ) {
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
     val selected = family.variants.any { it.value == adapter.state.value }
     PreferenceTemplate(
         modifier = modifier,
-        onClick = { adapter.onChange(family.default) },
+        onClick = {
+            adapter.onChange(family.default)
+            mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
+        },
         title = {
             Box {
                 Text(
@@ -243,7 +249,10 @@ private fun FontSelectionItem(
             onDelete != null -> {
                 {
                     IconButton(
-                        onClick = onDelete,
+                        onClick = {
+                            onDelete()
+                            mMSDLPlayerWrapper.playToken(MSDLToken.SUCCESS)
+                        },
                         shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
@@ -267,13 +276,13 @@ private fun removeFamilyPrefix(
     return fontName.removePrefix(familyName).trim().toString()
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun VariantDropdown(
     adapter: PreferenceAdapter<FontCache.Font>,
     family: FontCache.Family,
     modifier: Modifier = Modifier,
 ) {
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
     Row(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
@@ -316,6 +325,7 @@ private fun VariantDropdown(
                     onClick = {
                         adapter.onChange(font)
                         showVariants = false
+                        mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
                     },
                     text = {
                         Text(

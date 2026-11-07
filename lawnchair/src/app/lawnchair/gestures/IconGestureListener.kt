@@ -2,6 +2,7 @@ package app.lawnchair.gestures
 
 import android.util.Log
 import android.view.ViewConfiguration
+import androidx.datastore.preferences.core.Preferences
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import androidx.lifecycle.lifecycleScope
@@ -12,7 +13,9 @@ import app.lawnchair.launcher
 import app.lawnchair.preferences2.PreferenceManager2
 import com.android.launcher3.BubbleTextView
 import com.android.launcher3.util.ComponentKey
+import com.android.launcher3.util.MSDLPlayerWrapper
 import com.android.launcher3.util.VibratorWrapper
+import com.google.android.msdl.data.model.MSDLToken
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
@@ -27,14 +30,13 @@ class IconGestureListener(
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private var scrollLock = ScrollLock.NONE
     private var isAnimating = false
+    private var cachedPreferences: Preferences? = null
+    private var configuredGestures = emptySet<GestureType>()
+    private var mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
 
     /** Represents the axis on which the current scroll gesture is locked.
      */
     private enum class ScrollLock { NONE, HORIZONTAL, VERTICAL }
-
-    private val configuredGestures by lazy {
-        GestureType.entries.filter { resolveGesture(it) != null }.toSet()
-    }
 
     override fun onSwipeRight(velocity: Float) = handleGesture(GestureType.SWIPE_RIGHT, velocity)
     override fun onSwipeLeft(velocity: Float) = handleGesture(GestureType.SWIPE_LEFT, velocity)
@@ -81,7 +83,7 @@ class IconGestureListener(
 
     /** Check if there's any gesture configured for this entry */
     fun hasAnyGestureConfigured(): Boolean {
-        return configuredGestures.isNotEmpty()
+        return getConfiguredGestures().isNotEmpty()
     }
 
     /** Check if there's a horizontal gesture configured for this entry. (Swipe left/right) */
@@ -99,7 +101,21 @@ class IconGestureListener(
     /** Check if there's a specific gesture configured for this entry
      * @param gestureType The type of gesture to check */
     private fun hasGestureConfigured(gestureType: GestureType): Boolean {
-        return configuredGestures.contains(gestureType)
+        return gestureType in getConfiguredGestures()
+    }
+
+    /**
+     * Refreshes this listener's gesture cache whenever DataStore publishes a new preferences
+     * snapshot. This keeps an existing icon in sync without parsing its JSON configuration on
+     * every scroll event.
+     */
+    private fun getConfiguredGestures(): Set<GestureType> {
+        val preferences = prefs.getCachedPreferences()
+        if (preferences !== cachedPreferences) {
+            cachedPreferences = preferences
+            configuredGestures = GestureType.entries.filter { resolveGesture(it) != null }.toSet()
+        }
+        return configuredGestures
     }
 
     /** Launch gesture configured operation for a specific gesture type
@@ -113,8 +129,7 @@ class IconGestureListener(
 
         context.launcher.lifecycleScope.launch {
             Log.d("GESTURE_HANDLER", "Triggering gesture: ${gestureType.name}")
-            // Lawnchair-TODO: Migrate to MSDL vibration?
-            VibratorWrapper.INSTANCE.get(context.launcher).vibrate(VibratorWrapper.OVERVIEW_HAPTIC)
+            mMSDLPlayerWrapper.playToken(MSDLToken.SWIPE_THRESHOLD_INDICATOR)
             gesture.createHandler(context).onTrigger(context.launcher)
         }
 

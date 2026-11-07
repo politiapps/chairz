@@ -16,7 +16,6 @@
 
 package app.lawnchair.ui.preferences.components.colorpreference
 
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -32,6 +31,8 @@ import app.lawnchair.ui.preferences.navigation.ColorSelection as ColorSelectionR
 import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.ui.util.preview.PreferenceGroupPreviewContainer
 import app.lawnchair.ui.util.preview.PreviewLawnchair
+import com.android.launcher3.util.MSDLPlayerWrapper
+import com.google.android.msdl.data.model.MSDLToken
 import com.patrykmichalik.opto.domain.Preference
 
 /**
@@ -56,7 +57,6 @@ fun ColorPreference(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ColorPreference(
     label: String,
@@ -64,6 +64,7 @@ fun ColorPreference(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
     PreferenceTemplate(
         title = { Text(text = label) },
         modifier = modifier,
@@ -73,7 +74,10 @@ fun ColorPreference(
         endWidget = {
             ColorDot(selectedColor.colorPreferenceEntry)
         },
-        onClick = onClick,
+        onClick = {
+            mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
+            onClick()
+        },
     )
 }
 

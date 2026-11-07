@@ -23,7 +23,6 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,12 +45,13 @@ import com.android.launcher3.R
 import com.android.launcher3.notification.NotificationListener
 import com.android.launcher3.settings.SettingsActivity.EXTRA_FRAGMENT_ARGS
 import com.android.launcher3.settings.SettingsActivity.EXTRA_FRAGMENT_HIGHLIGHT_KEY
+import com.android.launcher3.util.MSDLPlayerWrapper
 import com.android.launcher3.util.SettingsCache
 import com.android.launcher3.util.SettingsCache.NOTIFICATION_BADGING_URI
+import com.google.android.msdl.data.model.MSDLToken
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NotificationDotsPreference(
     enabled: Boolean,
@@ -66,6 +66,7 @@ fun NotificationDotsPreference(
         enabled -> R.string.notification_dots_desc_on
         else -> R.string.notification_dots_desc_off
     }
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
 
     PreferenceTemplate(
         title = { Text(text = stringResource(id = R.string.notification_dots)) },
@@ -87,8 +88,10 @@ fun NotificationDotsPreference(
         },
         onClick = {
             if (showWarning) {
+                mMSDLPlayerWrapper.playToken(MSDLToken.FAILURE)
                 showPermissionDialog = true
             } else {
+                mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
                 val extras = bundleOf(EXTRA_FRAGMENT_HIGHLIGHT_KEY to "notification_badging")
                 val intent = Intent("android.settings.NOTIFICATION_SETTINGS")
                     .putExtra(EXTRA_FRAGMENT_ARGS, extras)
