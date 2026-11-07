@@ -149,7 +149,7 @@ An app appears twice in the Shortcut Tray (e.g. "FitApp" twice; "Play Store" twi
 
 **Fix**
 
-Collapse to one entry per package in `ShortcutTrayRepository.toTrayApps`, preferring the personal-profile main launcher activity: group by `packageName`, and within a group pick `user == Process.myUserHandle() && targetComponent == pm.getLaunchIntentForPackage(pkg)?.component` (with sensible fallbacks). That guarantees a tap opens the same thing the home screen would. Do the dedup on the *base* list so every tab inherits it.
+Collapse to one entry per package and user profile in `ShortcutTrayRepository.toTrayApps`, preferring the normal launcher activity within each profile where it can be resolved. This keeps personal and work copies visible while preventing duplicate activities within one profile. Do the dedup on the *base* list so every tab inherits it.
 
 ---
 
@@ -163,6 +163,52 @@ You want the home-screen long-press menu (app shortcuts, App info, Uninstall, Pa
 
 `src/com/android/launcher3/popup/PopupContainerWithArrow.java:527` `getTargetObjectLocation` calls `getDescendantRectRelativeToSelf(mOriginalIcon, …)`, so the anchor must be an actual `View` descendant of the drag layer with valid bounds and a non-null `getIcon()`.
 
-**Fix (used by `ShortcutTrayContent.showAppPopup`)**
+**Fix (used by `ShortcutTrayContent.beginAppDrag`)**
 
-Inflate a throwaway `R.layout.all_apps_icon` (`BubbleTextView`), `applyFromApplicationInfo(appInfo)`, set it `INVISIBLE`, and add it to `launcher.dragLayer` positioned over the tapped cell. Convert the cell's Compose `boundsInWindow()` to drag-layer-local coords by subtracting `dragLayer.getLocationInWindow(...)`. Then **`anchor.post { PopupContainerWithArrow.showForIcon(anchor) }`** — posting waits one layout pass so the anchor has real bounds (same pattern as `TaskbarActivityContext`). Remove the anchor on the popup's `onViewDetachedFromWindow`. This reuses Launcher3's public entry point with zero edits to `src/`.
+For drag-to-home, inflate a temporary `R.layout.all_apps_icon` (`BubbleTextView`), apply the `AppInfo`, set its tag, and position it over the Compose cell using `boundsInWindow()` converted to drag-layer-local coordinates. Start `launcher.workspace.beginDragShared(...)` with a `DragSource`; hide the tray during the drag and remove the anchor and tray when the drop completes. This reuses Launcher3's workspace placement flow with no edits to `src/`.
+
+---
+
+## 9. Shortcut Tray must observe the app store
+
+**Symptom:** Opening the tray during launcher startup can permanently show "No apps to show" for that opening, including in search.
+
+**Root cause:** `remember { toTrayApps(...appsStore.apps) }` snapshots an asynchronously populated store exactly once.
+
+**Fix:** Register an `AllAppsStore.OnUpdateListener` in `DisposableEffect`, refresh immediately after registration, and remove the listener on disposal. Rebuild the tab lists when apps or lifecycle state change. Show loading separately from a completed empty tab. Do not infer denied usage access from the activity being paused.
+
+## 10. Light overlays need their own status-bar contrast state
+
+**Symptom:** The light tray background covers white notification icons.
+
+**Root cause:** The panel draws behind the status bar but inherits the wallpaper's icon appearance.
+
+**Fix:** Give the tray a dedicated `SystemUiController` state with `FLAG_LIGHT_STATUS` while attached, then clear it on detach. This requests dark status icons without changing navigation icons. A dedicated state avoids overwriting other sheets' state. Finish detaching an older closing tray before opening its replacement, and cancel outstanding animations on immediate close.
+
+## 11. Uninstalling work-profile apps must not use `startActivitySafely`
+
+**Symptom:** Uninstalling a work-profile app from the long-press popup shows "App not installed", although `dumpsys package` reports `User 10: installed=true`.
+
+**Root cause:** `LawnchairShortcut.UnInstall` launched the `ACTION_DELETE` intent with `startActivitySafely(view, intent, itemInfo)`. For a non-current user, `ActivityContext.startActivitySafely` calls `LauncherApps.startMainActivity(intent.component, user, …)`. A DELETE intent has no component, so this throws. The failure appears in logcat under `E/ActivityContext … LauncherApps.startMainActivity`.
+
+**Fix:** Use a plain `context.startActivity(intent)` with `EXTRA_USER` set, as Launcher3's `SecondaryDropTarget` does.
+
+## 12. Tray icons need `newIcon()` to show the work badge
+
+**Symptom:** Work-profile copies in the Shortcut Tray look identical to personal copies, so they read as duplicates.
+
+**Root cause:** `AppInfo.bitmap.icon` is the raw bitmap. The work badge is added only when drawing via `BitmapInfo.newIcon(context)`.
+
+**Fix:** Render `app.info.bitmap.newIcon(context)` through `rememberDrawablePainter`.
+
+**Related:** `adb install` installs for every user, including the work profile. Pass `--user 0` to sideload to the personal profile only.
+
+## 13. All-apps first load steals the tray's keyboard
+
+**Symptom:** After the launcher process restarts (Samsung kills it in the background), pressing Home twice quickly opens the Shortcut Tray empty. When apps arrive the keyboard disappears and typing does nothing.
+
+**Root cause:** The home screen appears about 1.25 s before `AllAppsStore.setApps`. On that first load `ActivityAllAppsContainerView.onAppsUpdated` → `rebindAdapters` → `onActivePageChanged` calls `hideKeyboard()` when the personal/work tabs are bound. A tray that is already open loses its IME.
+
+**Fix:** `ShortcutTrayContent` keys its focus/keyboard `LaunchedEffect` on `allApps.isNotEmpty()`, so it reclaims focus and the keyboard once apps first load. The effect runs a frame after the store listeners' synchronous hide.
+
+**Also:** Install fixes to the variant that holds the HOME role (`adb shell cmd role get-role-holders android.app.role.HOME`). The `play` and `github` debug builds are separate apps (`app.chairz.play.debug` and `app.chairz.debug`), so a fix in one does not reach the other.

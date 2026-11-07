@@ -257,7 +257,10 @@ class LawnchairShortcut {
                         ),
                     )
                     .putExtra(Intent.EXTRA_USER, itemInfo?.user)
-                target?.startActivitySafely(view, intent, itemInfo)
+                // Plain startActivity, as in Launcher3's SecondaryDropTarget: EXTRA_USER selects the
+                // profile. startActivitySafely would route a work-profile item through
+                // LauncherApps.startMainActivity, which cannot launch a DELETE intent.
+                view.context.startActivity(intent)
                 AbstractFloatingView.closeAllOpenViews(target)
             } catch (e: URISyntaxException) {
                 // Do nothing.

@@ -12,6 +12,7 @@ import androidx.core.view.doOnLayout
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.theme.color.tokens.ColorTokens
 import com.android.launcher3.AbstractFloatingView
+import com.android.launcher3.util.SystemUiController
 import com.android.launcher3.views.BaseDragLayer
 
 /**
@@ -44,6 +45,8 @@ class ShortcutTrayView(private val launcher: LawnchairLauncher) : AbstractFloati
             ShortcutTrayContent(
                 launcher = launcher,
                 onDismiss = { close(true) },
+                onDragStarted = { visibility = INVISIBLE },
+                onDragFinished = { close(false) },
             )
         }
     }
@@ -55,6 +58,7 @@ class ShortcutTrayView(private val launcher: LawnchairLauncher) : AbstractFloati
         alpha = 0f
         animate().alpha(1f).setDuration(OPEN_DURATION).start()
         composeView.doOnLayout { view ->
+            if (!mIsOpen) return@doOnLayout
             view.translationY = -view.height.toFloat()
             view.animate()
                 .translationY(0f)
@@ -64,8 +68,24 @@ class ShortcutTrayView(private val launcher: LawnchairLauncher) : AbstractFloati
         }
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // The light tray covers the status bar, regardless of wallpaper icon contrast.
+        launcher.systemUiController?.updateUiState(
+            SystemUiController.UI_STATE_SHORTCUT_TRAY,
+            SystemUiController.FLAG_LIGHT_STATUS,
+        )
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        launcher.systemUiController?.updateUiState(SystemUiController.UI_STATE_SHORTCUT_TRAY, 0)
+    }
+
     override fun handleClose(animate: Boolean) {
         launcher.hideKeyboard()
+        animate().cancel()
+        composeView.animate().cancel()
         if (!animate) {
             detach()
             return
@@ -106,7 +126,15 @@ class ShortcutTrayView(private val launcher: LawnchairLauncher) : AbstractFloati
         private const val CLOSE_DURATION = 200L
 
         fun show(launcher: LawnchairLauncher) {
-            if (getOpenView<ShortcutTrayView>(launcher, TYPE_COMPOSE_VIEW) != null) return
+            // A closing tray is no longer "open" but remains attached until its animation ends.
+            // Finish removing it before a new tray takes ownership of status-bar contrast.
+            for (index in launcher.dragLayer.childCount - 1 downTo 0) {
+                val child = launcher.dragLayer.getChildAt(index)
+                if (child is ShortcutTrayView) {
+                    if (child.isOpen) return
+                    child.close(false)
+                }
+            }
             closeAllOpenViews(launcher)
             ShortcutTrayView(launcher).show()
         }

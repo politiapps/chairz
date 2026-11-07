@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,9 +43,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -54,7 +57,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -65,15 +68,16 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.util.ProvideLifecycleState
 import app.lawnchair.util.lifecycleState
 import com.android.launcher3.BubbleTextView
+import com.android.launcher3.DragSource
+import com.android.launcher3.dragndrop.DragOptions
 import com.android.launcher3.R
+import com.android.launcher3.allapps.AllAppsStore
 import com.android.launcher3.model.data.AppInfo
-import com.android.launcher3.popup.PopupContainerWithArrow
 import com.android.launcher3.views.BaseDragLayer
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
@@ -96,6 +100,8 @@ private val ICON_SIZE = 40.dp
 internal fun ShortcutTrayContent(
     launcher: LawnchairLauncher,
     onDismiss: () -> Unit,
+    onDragStarted: () -> Unit,
+    onDragFinished: () -> Unit,
 ) {
     // Force the light variant of the launcher's own theme so the tray reads as a bright card
     // (matching the reference), while still picking up the user's accent colour.
@@ -108,6 +114,8 @@ internal fun ShortcutTrayContent(
                 TrayBody(
                     launcher = launcher,
                     onDismiss = onDismiss,
+                    onDragStarted = onDragStarted,
+                    onDragFinished = onDragFinished,
                     modifier = Modifier.statusBarsPadding(),
                 )
             }
@@ -119,6 +127,8 @@ internal fun ShortcutTrayContent(
 private fun TrayBody(
     launcher: LawnchairLauncher,
     onDismiss: () -> Unit,
+    onDragStarted: () -> Unit,
+    onDragFinished: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var query by remember { mutableStateOf("") }
@@ -132,20 +142,36 @@ private fun TrayBody(
     val selectedTab = ShortcutTrayTab.entries[pagerState.currentPage]
 
     // Base list comes from the launcher's own store, so icons/titles match the rest of the launcher.
-    val allApps = remember {
-        ShortcutTrayRepository.toTrayApps(launcher, launcher.appsView.appsStore.apps)
+    val appsStore = launcher.appsView.appsStore
+    var allApps by remember(appsStore) {
+        mutableStateOf(
+            ShortcutTrayRepository.toTrayApps(launcher, appsStore.apps),
+            neverEqualPolicy(),
+        )
+    }
+    DisposableEffect(appsStore) {
+        val listener = AllAppsStore.OnUpdateListener {
+            // AppInfo objects can also be updated in place (for example, their icons).
+            allApps = ShortcutTrayRepository.toTrayApps(launcher, appsStore.apps)
+        }
+        appsStore.addUpdateListener(listener)
+        // Close the gap between the initial composition and listener registration.
+        listener.onAppsUpdated()
+        onDispose { appsStore.removeUpdateListener(listener) }
     }
 
     // Re-read the usage-access grant whenever the launcher resumes, so returning from the system
     // settings screen updates the tray without the user having to reopen it.
     val lifecycle = lifecycleState()
     val hasUsageAccess = remember(lifecycle) {
-        if (lifecycle.isAtLeast(Lifecycle.State.RESUMED)) UsageAccess.isGranted(launcher) else false
+        UsageAccess.isGranted(launcher)
     }
 
     // Load all three tabs up front so swiping between pages doesn't flicker empty.
-    var tabApps by remember { mutableStateOf<Map<ShortcutTrayTab, List<ShortcutTrayApp>>>(emptyMap()) }
-    LaunchedEffect(allApps, hasUsageAccess) {
+    var tabApps by remember(allApps, hasUsageAccess, lifecycle) {
+        mutableStateOf<Map<ShortcutTrayTab, List<ShortcutTrayApp>>>(emptyMap())
+    }
+    LaunchedEffect(allApps, hasUsageAccess, lifecycle) {
         tabApps = withContext(Dispatchers.Default) {
             ShortcutTrayTab.entries.associateWith { tab ->
                 when (tab) {
@@ -162,10 +188,13 @@ private fun TrayBody(
         }
     }
 
-    // Auto-focus the search field and raise the keyboard as soon as the tray opens.
+    // Auto-focus the search field and raise the keyboard as soon as the tray opens. Re-run once
+    // apps first arrive: on a cold start the all-apps container's first rebind calls
+    // hideKeyboard() (via onActivePageChanged), which would otherwise steal the tray's keyboard.
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
-    LaunchedEffect(Unit) {
+    val appsLoaded = allApps.isNotEmpty()
+    LaunchedEffect(appsLoaded) {
         focusRequester.requestFocus()
         keyboardController?.show()
     }
@@ -175,11 +204,11 @@ private fun TrayBody(
         onDismiss()
     }
 
-    // Long-press mirrors the home screen: show Launcher3's own app-shortcut popup (app shortcuts,
-    // App info, Uninstall, Pause, …) anchored over the pressed tray icon.
+    // Long-press starts Launcher3's regular internal drag so dropping the app on the workspace
+    // creates a persistent home-screen shortcut.
     val onLongPress: (ShortcutTrayApp, Rect) -> Unit = { app, boundsInWindow ->
         launcher.hideKeyboard()
-        showAppPopup(launcher, app, boundsInWindow)
+        beginAppDrag(launcher, app, boundsInWindow, onDragStarted, onDragFinished)
     }
 
     Column(modifier = modifier) {
@@ -226,6 +255,10 @@ private fun TrayBody(
                         onGrant = { UsageAccess.requestAccess(launcher) },
                         modifier = Modifier.fillMaxSize(),
                     )
+                } else if (tab !in tabApps) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 } else {
                     AppGrid(
                         apps = tabApps[tab].orEmpty(),
@@ -321,20 +354,23 @@ private fun launchPlayStoreSearch(context: Context, query: String) {
 }
 
 /**
- * Shows Launcher3's standard app-shortcut popup — the same menu you get from the home screen (app
- * shortcuts, App info, Uninstall, Pause, …) — anchored over the tray icon at [boundsInWindow].
- *
- * [PopupContainerWithArrow.showForIcon] positions itself from a real anchor View's bounds, so we add
- * a throwaway, invisible [BubbleTextView] to the drag layer over the tapped cell and use that as the
- * anchor. It is removed again as soon as the popup closes.
+ * Starts a launcher drag from a temporary BubbleTextView positioned over the Compose cell.
+ * Workspace accepts AppInfo as a WorkspaceItemFactory and converts it into a saved shortcut on drop.
  */
-private fun showAppPopup(launcher: LawnchairLauncher, app: ShortcutTrayApp, boundsInWindow: Rect) {
+private fun beginAppDrag(
+    launcher: LawnchairLauncher,
+    app: ShortcutTrayApp,
+    boundsInWindow: Rect,
+    onDragStarted: () -> Unit,
+    onDragFinished: () -> Unit,
+) {
     val info: AppInfo = app.info
     val dragLayer = launcher.dragLayer
 
     val anchor = LayoutInflater.from(launcher)
         .inflate(R.layout.all_apps_icon, dragLayer, false) as BubbleTextView
     anchor.applyFromApplicationInfo(info)
+    anchor.tag = info
     anchor.visibility = View.INVISIBLE
 
     // Convert the cell's window coordinates into drag-layer-local coordinates for the anchor.
@@ -348,20 +384,28 @@ private fun showAppPopup(launcher: LawnchairLauncher, app: ShortcutTrayApp, boun
         topMargin = (boundsInWindow.top - dragLayerPos[1]).roundToInt()
     }
     dragLayer.addView(anchor)
+    val width = boundsInWindow.width.roundToInt().coerceAtLeast(1)
+    val height = boundsInWindow.height.roundToInt().coerceAtLeast(1)
+    anchor.measure(
+        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY),
+    )
+    val left = (boundsInWindow.left - dragLayerPos[0]).roundToInt()
+    val top = (boundsInWindow.top - dragLayerPos[1]).roundToInt()
+    anchor.layout(left, top, left + width, top + height)
 
-    // Wait one layout pass so the anchor has real bounds before the popup reads them.
-    anchor.post {
-        val popup = PopupContainerWithArrow.showForIcon(anchor)
-        if (popup == null) {
+    val dragStarted = launcher.workspace.beginDragShared(
+        anchor,
+        DragSource { _, _, _ ->
             dragLayer.removeView(anchor)
-        } else {
-            popup.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-                override fun onViewAttachedToWindow(v: View) = Unit
-                override fun onViewDetachedFromWindow(v: View) {
-                    dragLayer.removeView(anchor)
-                }
-            })
-        }
+            onDragFinished()
+        },
+        DragOptions(),
+    )
+    if (dragStarted == null) {
+        dragLayer.removeView(anchor)
+    } else {
+        onDragStarted()
     }
 }
 
@@ -437,9 +481,11 @@ private fun AppCell(
             )
             .padding(vertical = 6.dp, horizontal = 2.dp),
     ) {
-        val icon = app.info.bitmap.icon
+        // newIcon() adds the work-profile badge; the raw bitmap does not carry it.
+        val context = LocalContext.current
+        val icon = remember(app.info, app.info.bitmap) { app.info.bitmap.newIcon(context) }
         Image(
-            bitmap = icon.asImageBitmap(),
+            painter = rememberDrawablePainter(drawable = icon),
             contentDescription = app.label,
             modifier = Modifier.size(ICON_SIZE),
         )

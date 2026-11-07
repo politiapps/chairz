@@ -23,14 +23,9 @@ object ShortcutTrayRepository {
     private val USAGE_WINDOW_MS = TimeUnit.DAYS.toMillis(30)
 
     /**
-     * Flattens the launcher's [AppInfo] list into the tray's model, collapsing to **one entry per
-     * package**.
-     *
-     * [com.android.launcher3.allapps.AllAppsStore] can hold several [AppInfo]s for the same package
-     * — a second launcher activity, or a work-profile copy — which would otherwise show the app
-     * twice (and, worse, let the user launch a secondary entry point that isn't signed in). For each
-     * package we keep the personal-profile main launcher activity where we can identify it, so a tap
-     * always opens the same thing the home screen would.
+     * Flattens the launcher's [AppInfo] list into the tray's model, keeping one entry per package
+     * and user profile. This intentionally preserves both personal and work-profile copies of an
+     * app while avoiding duplicate activities within either profile.
      */
     fun toTrayApps(context: Context, apps: Array<AppInfo>): List<ShortcutTrayApp> {
         val personalUser = Process.myUserHandle()
@@ -42,18 +37,23 @@ object ShortcutTrayRepository {
                 if (label.isEmpty()) return@mapNotNull null
                 ShortcutTrayApp(packageName = pkg, label = label, info = info)
             }
-            .groupBy { it.packageName }
-            .map { (pkg, entries) ->
+            .groupBy { it.packageName to it.info.user }
+            .map { (key, entries) ->
+                val (pkg, user) = key
                 if (entries.size == 1) return@map entries[0]
-                val mainComponent = try {
-                    pm.getLaunchIntentForPackage(pkg)?.component
-                } catch (_: Exception) {
+                // PackageManager's convenience lookup is for the current profile. Use it to
+                // choose the normal personal entry; for work profiles retain the first launcher
+                // activity supplied by AllAppsStore rather than dropping the work copy.
+                val mainComponent = if (user == personalUser) {
+                    try {
+                        pm.getLaunchIntentForPackage(pkg)?.component
+                    } catch (_: Exception) {
+                        null
+                    }
+                } else {
                     null
                 }
-                entries.firstOrNull { it.info.user == personalUser && it.info.targetComponent == mainComponent }
-                    ?: entries.firstOrNull { it.info.targetComponent == mainComponent }
-                    ?: entries.firstOrNull { it.info.user == personalUser }
-                    ?: entries[0]
+                entries.firstOrNull { it.info.targetComponent == mainComponent } ?: entries[0]
             }
             .sortedBy { it.label.lowercase() }
     }

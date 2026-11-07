@@ -35,6 +35,7 @@ public class SystemUiController {
     public static final int UI_STATE_WIDGET_BOTTOM_SHEET = 2;
     public static final int UI_STATE_FULLSCREEN_TASK = 3;
     public static final int UI_STATE_ALL_APPS = 4;
+    public static final int UI_STATE_SHORTCUT_TRAY = 5;
 
     public static final int FLAG_LIGHT_NAV = 1 << 0;
     public static final int FLAG_DARK_NAV = 1 << 1;
@@ -54,7 +55,7 @@ public class SystemUiController {
     public @interface SystemUiControllerFlags {}
 
     private final View mView;
-    private final int[] mStates = new int[5];
+    private final int[] mStates = new int[6];
 
     public SystemUiController(View view) {
         mView = view;
