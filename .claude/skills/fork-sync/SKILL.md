@@ -35,7 +35,8 @@ Expected conflicts:
   git diff --name-only --diff-filter=U | grep 'res/values' | xargs git checkout --theirs --
   for f in lawnchair/res/values*/strings.xml; do perl -i -pe 'if (/Copyright/) { s/Chairz/Lawnchair/g } else { s/Lawnchair/Chairz/g }' "$f"; done
   ```
-  Check: `git grep -l 'Copyright.*Chairz'` must be empty.
+  Then stage **all** translation files, not only the conflicted ones (auto-merged files also need the pass): `git add lawnchair/res`.
+  Check: `git grep -l "Copyright.*Chairz" -- lawnchair/res` must be empty.
 - **build.gradle** – version comment only; keep the Chairz name.
 - **Submodule pointer** – `git add platform_frameworks_libs_systemui` after step 1.
 
