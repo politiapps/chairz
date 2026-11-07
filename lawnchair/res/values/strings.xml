@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright 2021, Chairz
+  ~ Copyright 2021, Lawnchair
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -286,7 +286,7 @@
     <string name="prediction_mode_label">Suggestions provider</string>
     <string name="app_predictions_disable_reason_pre_q_description">This feature requires Android 10 or higher</string>
     <string name="prediction_mode_system">System</string>
-    <string name="prediction_mode_lawnchair" translatable="false">Lawnchair</string>
+    <string name="prediction_mode_lawnchair" translatable="false">Chairz</string>
     <string name="prediction_mode_none">Off</string>
     <string name="prediction_weighted_usage_stats_label">Use device usage data</string>
     <string name="prediction_weighted_usage_stats_description">Use your device\'s usage statistics to make suggestions more accurate</string>
@@ -296,7 +296,7 @@
     <string name="prediction_system_settings">Manage system suggestions</string>
 
     <string name="missing_usage_access_label">Usage access needed</string>
-    <string name="missing_usage_access_desc">To improve app suggestions, turn on usage access for <xliff:g id="name" example="Lawnchair">%1$s</xliff:g></string>
+    <string name="missing_usage_access_desc">To improve app suggestions, turn on usage access for <xliff:g id="name" example="Chairz">%1$s</xliff:g></string>
 
     <!--
 
